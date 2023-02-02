@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "cli-table": "^0.3.11",
+    "puppeteer": "^19.6.3",
+    "request-promise": "^4.2.6"
+  }
+}
