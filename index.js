@@ -13,6 +13,8 @@ const Table = require("cli-table");
 // 파일 시스템 사용하기
 const fs = require("fs");
 
+const account = require("./account");
+
 let users = [];
 
 const options = {
@@ -66,12 +68,17 @@ const crawler = async () => {
     // await page.waitForTimeout(3000);
 
     // 사용 시 실제 아이디로 변경하기
-    const naver_id = "testtest";
-    const naver_pw = "testtesttesttest";
+    const naver_id = account.naver_id;
+    const naver_pw = account.naver_pw;
+
+    console.log("naver_id", naver_id);
+    console.log("naver_pw", naver_pw);
 
     await page.goto('https://nid.naver.com/nidlogin.login');
 
     await page.evaluate((id, pw) => {
+        // document.querySelector('#id').value = id;
+        // document.querySelector('#pw').value = pw;
         document.querySelector('#id').value = id;
         document.querySelector('#pw').value = pw;
     }, naver_id, naver_pw);
@@ -105,8 +112,8 @@ const crawler = async () => {
 
     // await page.waitForTimeout(10000);
 
-    await page.close();
-    await browser.close();
+    // await page.close();
+    // await browser.close();
 };
 
 const test = async () => {
