@@ -18,7 +18,7 @@ const account = require("./account");
 let users = [];
 
 const options = {
-    url : `https://cafe.naver.com/ArticleList.nhn?search.clubid=12928625&search.menuid=994&search.boardtype=L`,
+    url : "https://cafe.naver.com/"+ account.baedal_sesang().cafePath +"?iframe_url=/ArticleList.nhn%3Fsearch.clubid="+ account.baedal_sesang().clubID +"%26search.boardtype=L",
     json : true
 }
 
@@ -68,8 +68,8 @@ const crawler = async () => {
     // await page.waitForTimeout(3000);
 
     // 사용 시 실제 아이디로 변경하기
-    const naver_id = account.naver_id;
-    const naver_pw = account.naver_pw;
+    const naver_id = account.baedal_sesang().id;
+    const naver_pw = account.baedal_sesang().pw;
 
     console.log("naver_id", naver_id);
     console.log("naver_pw", naver_pw);
@@ -112,8 +112,8 @@ const crawler = async () => {
 
     // await page.waitForTimeout(10000);
 
-    // await page.close();
-    // await browser.close();
+    await page.close();
+    await browser.close();
 };
 
 const test = async () => {
