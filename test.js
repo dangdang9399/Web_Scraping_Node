@@ -6,7 +6,9 @@ const account = require('./account');
 
 const scraper = async () => {
 
-    const url = "https://cafe.naver.com/"+ account.baedal_sesang().cafePath +"?iframe_url=/ArticleList.nhn%3Fsearch.clubid="+ account.baedal_sesang().clubID +"%26search.boardtype=L";
+    const url = "https://cafe.naver.com/"+ account.baedal_sesang().cafePath
+                +"?iframe_url=/ArticleList.nhn%3Fsearch.clubid="+ account.baedal_sesang().clubID
+                +"%26search.boardtype=L";
     const browser = await puppeteer.launch({
         headless : false,
         defaultViewport:{
@@ -18,16 +20,12 @@ const scraper = async () => {
     let page = await browser.newPage();
 
     // 사용 시 실제 아이디로 변경하기
-    const naver_id = account.baedal_sesang().id;
-    const naver_pw = account.baedal_sesang().pw;
-    // dotenv 라이브러리 사용해서 변경해주기
-
     await page.goto('https://nid.naver.com/nidlogin.login');
 
     await page.evaluate((id, pw) => {
         document.querySelector('#id').value = id;
         document.querySelector('#pw').value = pw;
-    }, naver_id, naver_pw);
+    }, account.baedal_sesang().id, account.baedal_sesang().pw);
     await page.waitForTimeout(1000);
 
     await page.click('.btn_login');
@@ -36,14 +34,13 @@ const scraper = async () => {
     await page.goto(url);
     await page.waitForSelector('iframe');
 
-
     const elementHandle = await page.$(
         'iframe[id="cafe_main"]',
     );
     const frame = await elementHandle.contentFrame();
 
     await frame.type('#query', '판매', { delay: 100 });
-    await frame.type('.select_list ul > li', '판매', { delay: 100 });
+    // await frame.select('.select_list ul > li', '판매', { delay: 100 });
 
     console.log(frame)
 
@@ -70,8 +67,8 @@ const scraper = async () => {
     console.log({links});*/
 
     await page.waitForTimeout(2000);
-    await page.close();
-    await browser.close();
+    // await page.close();
+    // await browser.close();
 
 };
 
