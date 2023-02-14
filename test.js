@@ -57,7 +57,8 @@ const scraper = async () => {
     await frame.click('.input_search_area .btn-search-green');
 
     // 게시글 리스트 가져오기
-    await frame.waitForSelector('.article-board.result-board.m-tcol-c');
+    await frame.waitForSelector('.article-board.m-tcol-c');
+    // await frame.waitForSelector('.article-board.result-board.m-tcol-c');
 
     // 게시글 페이징 정보 가져오기
     await frame.waitForSelector('#main-area .prev-next');
@@ -90,7 +91,8 @@ const scraper = async () => {
         // 게시글 리스트 정보 가져오기
         boardListPageLinkList = await boardListPageFrame.evaluate(() => {
             let targetList = [];
-            const list = document.querySelectorAll('.article-board.result-board.m-tcol-c > table > tbody > tr');
+            const list = document.querySelectorAll('.article-board.m-tcol-c > table > tbody > tr');
+            // const list = document.querySelectorAll('.article-board.result-board.m-tcol-c > table > tbody > tr');
             list.forEach(async (data) => {
                 if (data.querySelector('.td_article .board-list .inner_list .list-i-selling .blind').textContent == '판매') {
                     targetList.push({
