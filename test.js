@@ -93,40 +93,22 @@ const scraper = async () => {
         const boardListPageFrame = await boardListPageElementHandle.contentFrame();
 
         // 게시글 리스트 정보 가져오기
-        boardListPageLinkList.push (await boardListPageFrame.evaluate(() => {
+        boardListPageLinkList.push(await boardListPageFrame.evaluate(() => {
             let targetListIndex = 0;
             let targetList = [];
-            const list =document.querySelectorAll('.article-board.result-board.m-tcol-c > table > tbody > tr');
+            const list = document.querySelectorAll('.article-board.result-board.m-tcol-c > table > tbody > tr');
             list.forEach(async (data) => {
-                if (data.querySelector('.td_article .board-list .inner_list .list-i-selling .blind').textContent == '판매'){
-                    targetList.push({
-                        // 테스트용 정보//
-                        index: ++targetListIndex,
-                        title: data.querySelector('.td_article .board-list .inner_list a').textContent,
-                        tag: data.querySelector('.td_article .board-list .inner_list .list-i-selling .blind').textContent,
-                        // 테스트용 정보//
-                        date: data.querySelector('.td_date').innerText,
-                        url: data.querySelector('.td_article .board-list .inner_list a').href,
-                        boardNum: data.querySelector('.td_article .board-number .inner_number').innerText
-                    })
-                }
-                /*else {
-                    if (data.querySelector('.td_article .board-list .inner_list .list-i-selling-safe .blind')){
-                        if (data.querySelector('.td_article .board-list .inner_list .list-i-selling-safe .blind').textContent == '판매 안전'){
-                            console.log("판매 안전 data === ", data);
-                            targetList.push({
-                                // 테스트용 정보//
-                                index: ++targetListIndex,
-                                title: data.querySelector('.td_article .board-list .inner_list a').textContent,
-                                tag: data.querySelector('.td_article .board-list .inner_list .list-i-selling-safe .blind').textContent,
-                                // 테스트용 정보//
-                                date: data.querySelector('.td_date').innerText,
-                                url: data.querySelector('.td_article .board-list .inner_list a').href,
-                                boardNum: data.querySelector('.td_article .board-number .inner_number').innerText
-                            })
-                        }
-                    }
-                }*/
+                targetList.push({
+                    // 테스트용 정보//
+                    index: ++targetListIndex,
+                    title: data.querySelector('.td_article .board-list .inner_list a').textContent,
+                    tag: data.querySelector('.td_article .board-list .inner_list .list-i-selling .blind').textContent,
+                    // 테스트용 정보//
+                    date: data.querySelector('.td_date').innerText,
+                    url: data.querySelector('.td_article .board-list .inner_list a').href,
+                    boardNum: data.querySelector('.td_article .board-number .inner_number').innerText
+                })
+
             })
             return targetList;
         }))
