@@ -172,11 +172,12 @@ const scraper = async () => {
                     pageDetailList.push(dbSetData);
 
                     // 판매자 정보 없는 경우 DB에 data 저장
-                    // let res = orgNaverCafe.OrgNaverCafeModal(mongoose, dbSetData);
+                    // let res = orgNaverCafe.OrgNaverCafeModule(mongoose, dbSetData);
 
                     // 1~5초 사이 랜덤의 수 생성하고 timeout 설정
                     const randomNum = (Math.floor(Math.random() * 5) * 1000) + 1000;
-                    await newPromise(resolve => setTimeout(resolve, randomNum));
+                    await boardFramePage.waitForTimeout(randomNum);
+                    // await newPromise(resolve => setTimeout(resolve, randomNum));
 
                 } else {
                     await boardFramePage.click('.btn_text');
@@ -208,11 +209,12 @@ const scraper = async () => {
                     pageDetailList.push(dbSetData);
 
                     // 판매자 정보 있는 경우 DB에 data 저장
-                    // let res = orgNaverCafe.OrgNaverCafeModal(mongoose, dbSetData);
+                    // let res = orgNaverCafe.OrgNaverCafeModule(mongoose, dbSetData);
 
                     // 1~5초 사이 랜덤의 수 생성하고 timeout 설정
                     const randomNum = (Math.floor(Math.random() * 5) * 1000) + 1000;
-                    await newPromise(resolve => setTimeout(resolve, randomNum));
+                    await boardFramePage.waitForTimeout(randomNum);
+                    // await newPromise(resolve => setTimeout(resolve, randomNum));
                 }
             }
         }
