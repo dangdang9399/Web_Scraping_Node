@@ -2,7 +2,13 @@
 const puppeteer = require('puppeteer');
 
 // 계정정보
-const account = require('./account');
+const account = require('./common/setting/setting');
+
+// 스케쥴러 사용
+constcron=require('node-cron');
+
+// 비동기 통신(ajax) 사용
+const axios =require('axios');
 
 const scraper = async () => {
 

@@ -1,131 +1,235 @@
-// ajax 요청을 더 쉽게 해주는 api
-const rp = require('request-promise');
-
-// jQuery와 유사하게 사용할 수 있게 해주는 api
-const cheerio = require('cheerio');
-
 // google에서 제공하는 웹스크래핑 api
 const puppeteer = require('puppeteer');
 
-// 값을 테이블 형식으로 볼 수 있게 해줌
-const Table = require("cli-table");
+// 계정정보
+const setting = require('./common/setting/setting');
 
-// 파일 시스템 사용하기
-const fs = require("fs");
+// 스케쥴러 사용
+constcron=require('node-cron');
 
-const account = require("./account");
+// 비동기 통신(ajax) 사용
+const axios =require('axios');
 
-let users = [];
+const scraper = async () => {
 
-const options = {
-    url : "https://cafe.naver.com/"+ account.baedal_sesang().cafePath
-            +"?iframe_url=/ArticleList.nhn%3Fsearch.clubid="+ account.baedal_sesang().clubID +"%26search.boardtype=L",
-    json : true
-}
-
-rp(options)
-    .then((data) => {
-        let userData = [];
-        for (let user of data) {
-            userData.push({ user: user, // 값 들어오는 거 보고 여기에 변수 추가해서 값 넣어주기
-                href: user,
-                // href: user.href
-            });
-        }
-        console.log(userData);
-        process.stdout.write('loading');
-        getChallengesCompletedAndPushToUserArray(userData);
-    })
-    .catch((err) => {
-        console.log(err);
-    });
-function getChallengesCompletedAndPushToUserArray(userData){
-    var i =0;
-    function next(){
-        if (i < userData.length){
-            var options = {
-                url : 'https://cafe.naver.com/nds07?iframe_url_utf8=%2F' + userData[i].href,
-                transfrom: body => cheerio.load(body)
-            }
-            /*rp(options)
-                .then(function ($) {
-                    process.stdout.write(`.`);
-                    const hrefLink = $('h1.')
-                })*/
-        }
-    }
-}
-
-const crawler = async () => {
+    // 네이버 카페 검색 아이디
+    const url = "https://cafe.naver.com/" + setting.naver_cafe().cafePath
+        + "?iframe_url=/ArticleSearchList.nhn%3Fsearch.clubid=" + setting.naver_cafe().clubID
+        + "%26search.searchdate=" + setting.naver_cafe().searchDate
+        + "%26search.defaultValue=1%26search.sortBy=date%26userDisplay=" + setting.naver_cafe().userDisplay
+        + "%26search.media=0%26search.option=0";
     const browser = await puppeteer.launch({
-        headless : false,
-        defaultViewport:{
-            width:2000,
-            height:1024,
+        headless: false,
+        defaultViewport: {
+            width: 2000,
+            height: 1024,
         }
     });
-    const page = await browser.newPage();
-    // const page2 = await browser.newPage();
-    // await page.waitForTimeout(3000);
+
+    // 탭이 2개 생기는 걸 방지
+    const pages = await browser.pages();
+    const page = pages[0];
 
     // 사용 시 실제 아이디로 변경하기
-    await page.goto('https://nid.naver.com/nidlogin.login');
+    // 로그인
+    await page.goto('https://nid.naver.com/nidlogin.login', {waitUntil: 'networkidle0'});
 
+    // 실제 사용자처럼 보이게 설정
+    await page.setUserAgent(setting.naver_cafe().userAgent);
+
+    // 로그인 정보 입력
     await page.evaluate((id, pw) => {
         document.querySelector('#id').value = id;
         document.querySelector('#pw').value = pw;
-    }, account.baedal_sesang().id, account.baedal_sesang().pw);
+    }, setting.naver_cafe().id, setting.naver_cafe().pw);
     await page.waitForTimeout(1000);
 
     await page.click('.btn_login');
-    await page.waitForNavigation();
 
-    await page.goto('https://cafe.naver.com/nds07');
-    await page.click('#menuLink994');
-    await page.waitForTimeout(6000);
+    // 실제 로그인 되는 id, pw 적고 나서 주석 해제 해주기
+    // await page.waitForNavigation();
 
-    // const html = await page.content();
-    // fs.writeFileSync("example.html", html);
+    // 로그인 후 네이버 카페로 이동
+    await page.goto(url);
 
-    // let eh = await page.$("div.m-tcol-c a.article");
-    // let eh = await page.$("a.article");
-    // let eh = await page.$("td.td_date");
-    /*let title = eh.$eval('a.article', function (el){
-        return el.innerText
-    })
-    console.log(title);*/
+    // 카페 정보 조회해오기
+    await page.waitForSelector('iframe');
 
-    // 어제 날짜 검색
-    /*let todayDate = new Date();
-    // 2023.01.21.
-    let year = todayDate.getFullYear();
-    let month = todayDate.getMonth()+1;
-    let date = todayDate.getDate();
-    let searchDate = (year + "." + month + "." + (date - 1) + ".").toString();*/
+    // iframe 정보 사용처리 해주기
+    const elementHandle = await page.$(
+        'iframe[id="cafe_main"]',
+    );
+    const frame = await elementHandle.contentFrame();
 
-    // await page.waitForTimeout(10000);
+    // 서치 데이터 값 입력
+    await frame.type('#queryTop', '판매', {delay: 100});
+    // 검색 버튼 클릭 -> 리스트 조회
+    await frame.click('.input_search_area .btn-search-green');
+
+    // 게시글 리스트 가져오기
+    await frame.waitForSelector('.article-board.m-tcol-c');
+    // await frame.waitForSelector('.article-board.result-board.m-tcol-c');
+
+    // 게시글 페이징 정보 가져오기
+    await frame.waitForSelector('#main-area .prev-next');
+    const pageList = await frame.evaluate(() => {
+        let pageCountList = [];
+        const list = document.querySelectorAll('#main-area .prev-next > a');
+        list.forEach(async (data) => {
+            pageCountList.push({
+                pageCountNumber: data.textContent,
+                page: data.href
+            })
+        })
+        return pageCountList
+    });
+
+
+    let boardListPageLinkList = [];
+    // 페이지 수 만큼 for 문 돌면서 게시글 리스트 정보(게시글 번호, url 등) list에 넣어주기
+    for (let pageListKey in pageList) {
+        // console.log("pageListKey == ", pageListKey);
+        // console.log(pageList[pageListKey].page);
+        await page.goto(pageList[pageListKey].page);
+
+        await page.waitForSelector('iframe');
+        const boardListPageElementHandle = await page.$(
+            'iframe[id="cafe_main"]',
+        );
+        const boardListPageFrame = await boardListPageElementHandle.contentFrame();
+
+        // 게시글 리스트 정보 가져와서 list에 push 해주기
+        boardListPageLinkList.push(await boardListPageFrame.evaluate(() => {
+            let targetListIndex = 0;
+            let targetList = [];
+            const list = document.querySelectorAll('.article-board.result-board.m-tcol-c > table > tbody > tr');
+            list.forEach(async (data) => {
+                targetList.push({
+                    // 테스트용 정보 //
+                    // index: ++targetListIndex,
+                    // title: data.querySelector('.td_article .board-list .inner_list a').textContent,
+                    // tag: data.querySelector('.td_article .board-list .inner_list .list-i-selling .blind').textContent,
+                    // 테스트용 정보 //
+
+                    date: data.querySelector('.td_date').innerText,
+                    url: data.querySelector('.td_article .board-list .inner_list a').href,
+                    boardNum: data.querySelector('.td_article .board-number .inner_number').innerText
+                })
+            })
+            return targetList;
+        }))
+    }
+    // console.log("boardListPageLinkList === ", boardListPageLinkList);
+
+
+    // 게시글 상세페이지에서 정보 추출 후 db 저장
+    let pageDetailList = [];
+    for (let boardListPageLink of boardListPageLinkList) {
+        const boardPage = await browser.newPage();
+        await boardPage.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36");
+        for (const link of boardListPageLink) {
+            await boardPage.goto(link.url, {waitUntil: 'networkidle0'});
+            const boardFrameHandle = await boardPage.$("iframe[id='cafe_main']");
+            const boardFramePage = await boardFrameHandle.contentFrame();
+
+            // 제목 + 본문에 '판매' 키워드만 들어간 판매가 아닌 글은 저장 X
+            if (await boardFramePage.$('.ProductName') == null || await boardFramePage.$('.ProductName') == undefined) {
+                // console.log("판매 글이 아닙니다.")
+                continue;
+
+                // 판매 글만 저장
+            } else if (await boardFramePage.$('.ProductName') !== null || await boardFramePage.$('.ProductName') !== undefined) {
+                // console.log("ProductName === ", await boardFramePage.$eval('.ProductName', el => el.innerText));
+                // 판매자명
+                const sellerName = await boardFramePage.$eval('.nickname', el => el.innerText);
+                // 등록일
+                const regDate = await boardFramePage.$eval('.article_info > .date', el => el.innerText);
+                // 글 제목
+                const title = await boardFramePage.$eval('.ProductName', el => el.innerText);
+                // 가격
+                const price = await boardFramePage.$eval('.ProductPrice', el => el.innerText);
+                // 게시글 링크
+                const boardUrl = "https://cafe.naver.com/" + setting.baedal_sesang().cafePath + "/" + link.boardNum;
+
+                // 본문
+                const content = await boardFramePage.$eval('.se-main-container', el => el.innerText);
+
+
+                /**
+                 * 판매자 정보 존재하지 않을 때는 본문의 휴대폰 정보만 넣어주기
+                 * - ex) 판매 완료
+                 * - ex) 판매자 연락처 정보 존재 X
+                 */
+                // 판매 완료
+                if (await boardFramePage.$('.btn_text') == null || await boardFramePage.$('.btn_text') == undefined) {
+                    // console.log("판매자 정보가 없습니다.")
+
+                    // 최종 DB 저장 정보
+                    const dbSetData = {
+                        type: 'SESANG',
+                        boardID: link.boardNum,
+                        sellerName: sellerName,
+                        contentDate: regDate,
+                        title: title,
+                        price: price,
+                        boardUrl: boardUrl,
+                        content: content
+                    };
+                    pageDetailList.push(dbSetData);
+
+                    // 판매자 정보 없는 경우 DB에 data 저장
+                    // let res = orgNaverCafe.OrgNaverCafeModule(mongoose, dbSetData);
+
+                    // 1~5초 사이 랜덤의 수 생성하고 timeout 설정
+                    const randomNum = (Math.floor(Math.random() * 5) * 1000) + 1000;
+                    await boardFramePage.waitForTimeout(randomNum);
+                    // await newPromise(resolve => setTimeout(resolve, randomNum));
+
+                } else {
+                    await boardFramePage.click('.btn_text');
+                    // 판매자 정보 불러올 때까지 잠시 대기
+                    await newPromise(resolve => setTimeout(resolve, 1000));
+
+                    // 판매자 정보
+                    let sellerInfoTell;
+                    if (await boardFramePage.$('.tell') == null || await boardFramePage.$('.tell') == undefined) {
+                        // 판매자 연락처 정보 존재 X
+                        sellerInfoTell = '';
+                    } else {
+                        // 판매자 정보 존재
+                        sellerInfoTell = await boardFramePage.$eval('.tell', el => el.innerText);
+                    }
+
+                    // 최종 DB 저장 정보
+                    const dbSetData = {
+                        type: 'SESANG',
+                        boardID: link.boardNum,
+                        sellerName: sellerName,
+                        contentDate: regDate,
+                        title: title,
+                        price: price,
+                        boardUrl: boardUrl,
+                        sellerPhone: sellerInfoTell,
+                        content: content
+                    };
+                    pageDetailList.push(dbSetData);
+
+                    // 판매자 정보 있는 경우 DB에 data 저장
+                    // let res = orgNaverCafe.OrgNaverCafeModule(mongoose, dbSetData);
+
+                    // 1~5초 사이 랜덤의 수 생성하고 timeout 설정
+                    const randomNum = (Math.floor(Math.random() * 5) * 1000) + 1000;
+                    await boardFramePage.waitForTimeout(randomNum);
+                    // await newPromise(resolve => setTimeout(resolve, randomNum));
+                }
+            }
+        }
+        await boardPage.close();
+    }
+    // console.log("pageDetailList === ", pageDetailList)
 
     await page.close();
     await browser.close();
 };
 
-const test = async () => {
-
-    /*
-    어제 날짜 검색
-    */
-    let todayDate = new Date();
-    // let todayDate = new Date();
-    // 2023.01.21.
-    let year = todayDate.getFullYear();
-    let month = todayDate.getMonth()+1;
-    let date = todayDate.getDate();
-    let searchDate = (year + "." + month + "." + (date - 1) + ".").toString();
-    console.log(todayDate);
-    console.log(month);
-    console.log(searchDate);
-
-};
-
-crawler();
-// test();
+scraper();

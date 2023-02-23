@@ -39,4 +39,4 @@ out/
 ### IntelliJ IDEA ###
 application-local.properties
 
-account.js
+common/setting/setting.js
