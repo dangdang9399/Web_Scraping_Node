@@ -40,3 +40,7 @@ out/
 application-local.properties
 
 common/setting/setting.js
+
+node_modules
+package-lock.json
+yarn.lock
