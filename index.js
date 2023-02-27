@@ -234,7 +234,8 @@ const setNaverCafeData = async (boardID, sellerName, contentDate, title, price, 
         price: price,
         boardUrl: boardUrl,
         sellerPhone: sellerPhone,
-        content: content
+        content: content,
+        phoneFilterYn: false
     };
 
     return dbSetData;
